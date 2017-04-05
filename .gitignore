@@ -1,3 +1,10 @@
+# Target Executable
+c0chk
+
+# Editor Backup Files
+*~
+\#*\#
+
 # Object files
 *.o
 *.ko
