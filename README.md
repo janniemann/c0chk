@@ -1,6 +1,8 @@
 # c0chk
 check files for c0 control chars
 
+tested on macOS
+
 ## usage
 
     usage: c0chk [-chm] [file ...]
