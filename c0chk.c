@@ -37,7 +37,7 @@ const char *makefile_names[] = {
 static void
 usage()
 {
-  fputs("usage: c0chk [-achmTt] [file ...]\n"
+  fputs("usage: c0chk [-achmnTt] [file ...]\n"
 "\n"
 "checks files for c0 control chars except line feed '\\n'.\n"
 "\n"
@@ -47,6 +47,7 @@ usage()
 "  -c   continue inspecting, print all occurences\n"
 "  -h   print this help\n"
 "  -m   allow exactly one leading tab in Makefiles (GNUmakefile, makefile, Makefile)\n"
+"  -n   allow files not to end with newlines\n"
 "  -T   allow all horizontal tabs\n"
 "  -t   allow leading horizontal tabs for indentation\n", stderr);
 
@@ -125,12 +126,14 @@ main(int argc, char **argv)
   int mflag = 0; /* do not fail on Makefiles (GNUMakefile, Makefile) for tabs on first position */
   char *file_basename = NULL;
   int leading_tab_ok = 0;
+  int lastchar = '\n';
+  int nflag = 0;
 
   enum e_allow_ht allow_ht = ALLOW_HT_NEVER;
   enum e_offense offense = OFFENSE_NONE;
 
   /* parse command line */
-  while (-1 != (ch = getopt(argc, argv, "achmTt"))) {
+  while (-1 != (ch = getopt(argc, argv, "achmnTt"))) {
     switch (ch) {
     case 'a':
       aflag = 1;
@@ -143,6 +146,9 @@ main(int argc, char **argv)
       /* NOTREACHED */
     case 'm':
       mflag = 1;
+      break;
+    case 'n':
+      nflag = 1;
       break;
     case 'T':
       allow_ht = ALLOW_HT_ALL;
@@ -185,6 +191,7 @@ main(int argc, char **argv)
     pos = 1;
     line = 1;
     leading_tab_ok = 1;
+    lastchar = '\n'; /* so empty files count as ending with newline */
     while (EOF != (ch = getc(fh))) {
 
       offense = OFFENSE_NONE;
@@ -259,6 +266,7 @@ check_offense:
         pos++;
         leading_tab_ok = 0;
       }
+      lastchar = ch;
 
     }
 
@@ -269,6 +277,16 @@ check_offense:
 
     if (!feof(fh)) {
       fputs("something strange happened here...\n", stderr);
+    }
+
+    /* check last character, should be '\n' */
+    if ('\n' != lastchar && !nflag) {
+      if (cflag) {
+	rv = 1;
+        printf("%s:%i:%i: file does not end in newline\n", argv[i], line, pos);
+      } else {
+	return 1;
+      }
     }
 
     /* reset allow_ht if Makefile */

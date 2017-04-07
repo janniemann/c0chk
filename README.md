@@ -6,7 +6,7 @@ tested on macOS
 
 ## usage
 
-    usage: c0chk [-achmTt] [file ...]
+    usage: c0chk [-achmnTt] [file ...]
 
     checks files for c0 control chars except line feed '\n'.
 
@@ -16,11 +16,13 @@ tested on macOS
       -c   continue inspecting, print all occurences
       -h   print this help
       -m   allow exactly one leading tab in Makefiles (GNUmakefile, makefile, Makefile)
+      -n   allow files not to end with newlines
       -T   allow all horizontal tabs
       -t   allow leading horizontal tabs for indentation
 
 ## todo
 
-- add '-n' option: files are allowed not to end with an eol-symbol, must end in eol would be default.
-- rewrite to use memory mapped io
-- add '-u' option: check for utf-8 encoding (without BOM).
+- rewrite to use memory mapped io?
+- by default, every file should be tested for correct utf-8 encoding (without BOM).
+- add option '-u' to allow other 8bit encodings than utf-8.
+- what about c1 controls?

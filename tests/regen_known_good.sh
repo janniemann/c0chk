@@ -7,9 +7,11 @@ genFlags() {
 	for a in a _ ; do
 	for c in c _ ; do
 	for m in m _ ; do
+	for n in n _ ; do
 	for T in T _ ; do
 	for t in t _ ; do
-		echo $a$c$m$T$t;
+		echo $a$c$m$n$T$t;
+	done;
 	done;
 	done;
 	done;
