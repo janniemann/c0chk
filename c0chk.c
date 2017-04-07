@@ -37,15 +37,19 @@ const char *makefile_names[] = {
 static void
 usage()
 {
-  fputs("usage: c0chk [-chm] [file ...]\n"
+  fputs("usage: c0chk [-achmTt] [file ...]\n"
 "\n"
 "checks files for c0 control chars except line feed '\\n'.\n"
 "\n"
 "returns 0 if no offending chars were found, 1 otherwise, 2 on failures.\n"
 "\n"
+"  -a   ascii, do not allow 8 bit characters (iso, utf-8)\n"
 "  -c   continue inspecting, print all occurences\n"
 "  -h   print this help\n"
-"  -m   allow tabs in Makefiles\n", stderr);
+"  -m   allow exactly one leading tab in Makefiles (GNUmakefile, makefile, Makefile)\n"
+"  -T   allow all horizontal tabs\n"
+"  -t   allow leading horizontal tabs for indentation\n", stderr);
+
   exit(1);
 }
 
@@ -91,6 +95,21 @@ xlat(int ch)
   }
 }
 
+enum e_allow_ht {
+  ALLOW_HT_NEVER = 0,
+  ALLOW_HT_ONE_LEADING, /* set conditionally by -m if handling a Makefile */
+  ALLOW_HT_LEADING,     /* set by -t */
+  ALLOW_HT_ALL,         /* set by -T */
+};
+
+
+enum e_offense {
+  OFFENSE_NONE = 0,
+  OFFENSE_C0,
+  OFFENSE_8BIT,
+};
+
+
 int
 main(int argc, char **argv)
 {
@@ -98,17 +117,24 @@ main(int argc, char **argv)
   size_t j; /* iterating by sizeof() */
   FILE *fh;
   int ch;
+  int aflag = 0;
   int cflag = 0; /* if set, keep running and output all c0 occurences of '\r' */
   int rv = 0;    /* only used if cflag, for recording return value */
   int line = 1;  /* only used if cflag, for recording line number */
-  int pos = 0;   /* only used if cflag, for recording position */
+  int pos = 1;   /* only used if cflag, for recording position */
   int mflag = 0; /* do not fail on Makefiles (GNUMakefile, Makefile) for tabs on first position */
-  int is_makefile = 0;
   char *file_basename = NULL;
+  int leading_tab_ok = 0;
+
+  enum e_allow_ht allow_ht = ALLOW_HT_NEVER;
+  enum e_offense offense = OFFENSE_NONE;
 
   /* parse command line */
-  while (-1 != (ch = getopt(argc, argv, "chm"))) {
+  while (-1 != (ch = getopt(argc, argv, "achmTt"))) {
     switch (ch) {
+    case 'a':
+      aflag = 1;
+      break;
     case 'c':
       cflag = 1;
       break;
@@ -117,6 +143,15 @@ main(int argc, char **argv)
       /* NOTREACHED */
     case 'm':
       mflag = 1;
+      break;
+    case 'T':
+      allow_ht = ALLOW_HT_ALL;
+      break;
+    case 't':
+      /* -T overrides -t */
+      if (ALLOW_HT_ALL != allow_ht) {
+	allow_ht = ALLOW_HT_LEADING;
+      }
       break;
     default:
       usage();
@@ -133,40 +168,98 @@ main(int argc, char **argv)
       return 2;
     }
 
-    /* check if file is a makefile (if mflag is set) */
-    is_makefile = 0;
-    if (mflag) {
+    /* check if file is a makefile (if mflag is set) and set allow_ht */
+    if ((mflag) && (ALLOW_HT_NEVER == allow_ht)) {
       if (NULL == (file_basename = basename(argv[i]))) {
 	perror(argv[i]);
 	return 2;
       }
       for (j=0; j<sizeof(makefile_names)/sizeof(makefile_names[0]); j++) {
 	if (!strcmp(file_basename, makefile_names[j])) {
-	  is_makefile = 1;
+	  allow_ht = ALLOW_HT_ONE_LEADING;
 	  break;
 	}
       }
     }
 
+    pos = 1;
+    line = 1;
+    leading_tab_ok = 1;
     while (EOF != (ch = getc(fh))) {
-      if ((ch == '\t') && (is_makefile) && (pos == 0)) {
-	pos=7;
-	continue;
+
+      offense = OFFENSE_NONE;
+
+      /* checking horizontal tabs */
+      if ('\t' == ch) {
+	switch (allow_ht) {
+	case ALLOW_HT_NEVER:
+	  offense = OFFENSE_C0;
+	  break;
+	case ALLOW_HT_ONE_LEADING:
+	  if (1 != pos) {
+	    offense = OFFENSE_C0;
+	  }
+	  break;
+	case ALLOW_HT_LEADING:
+	  if (!leading_tab_ok) {
+	    offense = OFFENSE_C0;
+  	  }
+	  break;
+        case ALLOW_HT_ALL:
+	  break;
+	}
+	goto check_offense;
       }
-      if (ch == '\n') {
-	line++;
-	pos=0;
-        continue;
+
+      if ('\n' == ch) {
+	goto check_offense;
       }
-      pos++;
+
       if ((ch <= 31) || (ch == 127)) {
-        if (cflag == 0) {
-          return 1;
-        } else {
-          rv = 1;
-          printf("%s:%i:%i: 0x%0.2x %s\n", argv[i], line, pos, ch, xlat(ch));
-        }
+	offense = OFFENSE_C0;
+	goto check_offense;
       }
+
+      if ((1 == aflag) && !((0 <= ch) && (ch <= 127))) {
+	offense = OFFENSE_8BIT;
+	goto check_offense;
+      }
+
+check_offense:
+      if (OFFENSE_NONE != offense) {
+	if (!cflag) {
+	  return 1;
+	} else {
+	  switch (offense) {
+	  case OFFENSE_NONE:
+	    ;
+	    break;
+	  case OFFENSE_C0:
+            printf("%s:%i:%i: 0x%0.2x %s\n", argv[i], line, pos, ch, xlat(ch));
+	    break;
+          case OFFENSE_8BIT:
+            printf("%s:%i:%i: 0x%0.2x is not ascii\n", argv[i], line, pos, ch);
+	    break;
+	  }
+	  rv = 1;
+	}
+      }
+
+      /* advance position, keep record of leading tabs */
+      switch (ch) {
+      case '\t':
+        pos+=(8-pos%8);
+        break;
+      case '\n':
+        pos=1;
+        line++;
+        leading_tab_ok = 1;
+        break;
+      default:
+        pos++;
+        leading_tab_ok = 0;
+      }
+
     }
 
     if (ferror(fh)) {
@@ -178,8 +271,13 @@ main(int argc, char **argv)
       fputs("something strange happened here...\n", stderr);
     }
 
+    /* reset allow_ht if Makefile */
+    if ((mflag) && (ALLOW_HT_ONE_LEADING == allow_ht)) {
+      allow_ht = ALLOW_HT_NEVER;
+    }
+
     (void) fclose(fh);
   }
 
-  return 0;
+  return rv;
 }
