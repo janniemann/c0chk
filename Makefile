@@ -1,6 +1,7 @@
-CC=cc -x c -std=c99
+CC=cc
 
-CFLAGS= -Wall -Werror
+CFLAGS=-x c -std=c99
+CFLAGS+= -Wall -Werror
 CFLAGS+= -fstack-protector-all
 CFLAGS+= -Wstrict-prototypes -Wmissing-prototypes
 CFLAGS+= -Wmissing-declarations
@@ -10,13 +11,16 @@ CFLAGS+= -O2 -g
 
 LDFLAGS=
 
-EXECUTABLE=c0chk
+all: c0chk pchk
 
-${EXECUTABLE}: c0chk.c
-	${CC} ${CFLAGS} c0chk.c ${LDFLAGS} -o $@
+c0chk: c0chk.o
+	${CC} $^ ${LDFLAGS} -o $@
+
+pchk: pchk.o
+	${CC} $^ ${LDFLAGS} -o $@
 
 clean:
-	rm -f ${EXECUTABLE}
+	rm -f c0chk pchk
 	rm -f *.o
 	rm -f *~
 

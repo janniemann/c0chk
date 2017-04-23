@@ -34,7 +34,7 @@ const char *makefile_names[] = {
 };
 
 
-static void
+static __dead void
 usage()
 {
   fputs("usage: c0chk [-achmnTt] [file ...]\n"
