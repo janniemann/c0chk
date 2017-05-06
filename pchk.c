@@ -26,7 +26,7 @@ extern int errno;
 
 static int is_filename_portable(const char *, const char *);
 static void recur(const char *pathname, int *retval);
-static __dead void usage();
+static void usage(void);
 
 static const char * dirsep = "/";
 
@@ -142,7 +142,7 @@ is_filename_portable(const char *pathname, const char *name)
 }
 
 
-static __dead void
+static void
 usage()
 {
   fputs("usage: pchk [-h] [dir ...]\n"

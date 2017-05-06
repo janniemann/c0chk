@@ -22,7 +22,7 @@
 #include <string.h>  /* strcmp() */
 
 /* local prototypes */
-static void usage();
+static void usage(void);
 static char *xlat(int);
 
 /* for getopt() */
@@ -34,7 +34,7 @@ const char *makefile_names[] = {
 };
 
 
-static __dead void
+static void
 usage()
 {
   fputs("usage: c0chk [-achmnTt] [file ...]\n"
