@@ -28,15 +28,20 @@ static int is_filename_portable(const char *, const char *);
 static void recur(const char *pathname, int *retval);
 static void usage(void);
 
-static const char * dirsep = "/";
 
+
+static const char * dirsep = "/";
+// static const char * pathsep = ":";
+
+/* Windows:
+static const char * dirsep = "\\"
+// static const char * pathsep = ";"
+*/
 
 static void
 recur(const char *pathname, int *retval)
 {
-  int rv;
   DIR *dirhandle;
-  struct dirent entry_storage;
   struct dirent *entry;
   char *subdir;
 
@@ -46,13 +51,14 @@ recur(const char *pathname, int *retval)
   }
 
   for (;;) {
-    if (0 != (rv = readdir_r(dirhandle, &entry_storage, &entry))) {
-      /* perror uses errno, use rv instead? */
-      perror(NULL);
-      exit(2);
-    }
-    if (NULL == entry) {
-      break;
+    errno = 0;
+    if (NULL == (entry = readdir(dirhandle))) {
+      if (errno) {
+	perror("readdir");
+	exit(2);
+      } else {
+	break;
+      }
     }
     if (!strncmp(".", entry->d_name, 1) || !strncmp(".." , entry->d_name, 2)) {
       continue;
