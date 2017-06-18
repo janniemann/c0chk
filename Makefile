@@ -9,9 +9,10 @@ CFLAGS+= -Wshadow -Wpointer-arith -Wcast-qual
 CFLAGS+= -Wsign-compare
 CFLAGS+= -O2 -g
 
+CFLAGS+= -D_POSIX_C_SOURCE=199309L
 LDFLAGS=
 
-all: c0chk pchk
+all: c0chk
 
 c0chk: c0chk.o
 	${CC} $^ ${LDFLAGS} -o $@
