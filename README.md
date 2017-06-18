@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/janniemann/c0chk.svg?branch=master)](https://travis-ci.org/janniemann/c0chk)
+
 # c0chk / pchk
 
 c0chk checks files for c0 control chars and more.
