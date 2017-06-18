@@ -242,10 +242,10 @@ check_offense:
 	    ;
 	    break;
 	  case OFFENSE_C0:
-            printf("%s:%i:%i: 0x%0.2x %s\n", argv[i], line, pos, ch, xlat(ch));
+            printf("%s:%i:%i: 0x%.2x %s\n", argv[i], line, pos, ch, xlat(ch));
 	    break;
           case OFFENSE_8BIT:
-            printf("%s:%i:%i: 0x%0.2x is not ascii\n", argv[i], line, pos, ch);
+            printf("%s:%i:%i: 0x%.2x is not ascii\n", argv[i], line, pos, ch);
 	    break;
 	  }
 	  rv = 1;
